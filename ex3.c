@@ -126,14 +126,15 @@ int isBoardFull(char board[][COLS], int rows, int columns) {
 
 int ensureValidColumn(int columns, int column) {
     if (column < 0 || column >= columns) {
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 int isColumnFull(char board[][COLS], int rows, int columns, int column) {
-    ensureValidColumn(columns, column);
+    if (!ensureValidColumn(columns, column)) 
+        return COLUMN_FULL_INDEX;
 
     for (int row = 0; row < rows; row++) {
         if (board[row][column] == EMPTY) {
@@ -153,7 +154,8 @@ int isInBounds(int rows, int columns, int row, int column) {
 }   
 
 int getFreeRow(char board[][COLS], int rows, int columns, int column) {
-    ensureValidColumn(columns, column);
+    if (!ensureValidColumn(columns, column)) 
+        return COLUMN_FULL_INDEX;
 
     for (int row = rows - 1; row >= 0; row--) {
         if (board[row][column] == EMPTY) {
