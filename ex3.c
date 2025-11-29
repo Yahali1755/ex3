@@ -55,9 +55,17 @@ int getPlayerType(int);
 
 void createPriorityOrderArray(int[], int);
 
-int checkSequenceOfThree(char[][COLS], int, int, int, int, char);
+int checkSequenceOfN(char[][COLS], int, int, int, int, char, int);
 
-int canMakeSequenceOfThree(char[][COLS], int, int, int, char);
+int canMakeSequenceOfNMinus1(char[][COLS], int, int, int, char);
+
+int isSequenceOfNByColumn(char[][COLS], int, int, int, int, char, int);
+
+int isSequenceOfNByRow(char[][COLS], int, int, int, int, char, int);
+
+int isSequenceOfNByRightDiagonal(char[][COLS], int, int, int, int, char, int);
+
+int isSequenceOfNByLeftDiagonal(char[][COLS], int, int, int, int, char, int);
 
 int main() {
     char board[ROWS][COLS];
@@ -178,43 +186,85 @@ int makeMove(char board[][COLS], int rows, int columns, int column, char token) 
     return freeRow;
 }
 
-int checkSequenceOfThree(char board[][COLS], int rows, int columns, int row, int column, char token) {
-    // Check if sequence of three was made by column
-    if (isInBounds(rows, columns, row + 2, column) &&
-        token == board[row][column] && 
-        token == board[row + 1][column] && 
-        token == board[row + 2][column] ) {
+int isSequenceOfNByColumn(char board[][COLS], int rows, int columns, int row, int column, char token, int n) {
+    if (!isInBounds(rows, columns, row + n - 1, column)) {
+        return 0;
+    }
+
+    for (int index = 0; index < n; index++) {
+        if (token != board[row + index][column]) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+int isSequenceOfNByRow(char board[][COLS], int rows, int columns, int row, int column, char token, int n) {
+    if (!isInBounds(rows, columns, row, column) || !isInBounds(rows, columns, row, column + (n - 1))) {
+        return 0;
+    }
+
+    for (int index = 0; index < n; index++) {
+        if (token != board[row][column + index]) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+int isSequenceOfNByRightDiagonal(char board[][COLS], int rows, int columns, int row, int column, char token, int n) {
+    if (!isInBounds(rows, columns, row + (n - 1), column + (n - 1)) || !isInBounds(rows, columns, row, column)) {
+        return 0;
+    }
+
+    for (int index = 0; index < n; index++) {
+        if (token != board[row + index][column + index]) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+int isSequenceOfNByLeftDiagonal(char board[][COLS], int rows, int columns, int row, int column, char token, int n) {
+    if (!isInBounds(rows, columns, row + (n - 1), column - (n - 1)) || !isInBounds(rows, columns, row, column)) {
+        return 0;
+    }
+
+    for (int index = 0; index < n; index++) {
+        if (token != board[row + index][column - index]) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+int checkSequenceOfN(char board[][COLS], int rows, int columns, int row, int column, char token, int n) {
+    // Check if sequence of n was made by column
+    if (isSequenceOfNByColumn(board, rows, columns, row, column, token, n)) {
         return 1;
     }
 
-    // Check if sequence of three was made by row
-    for (int columnIndex = column - 2; columnIndex <= column; columnIndex++) {
-        if (isInBounds(rows, columns, row, columnIndex) && isInBounds(rows, columns, row, columnIndex + 2) &&
-            token == board[row][columnIndex] && 
-            token == board[row][columnIndex + 1] && 
-            token == board[row][columnIndex + 2] ) {
+    // Check if sequence of n was made by row
+    for (int i = 0; i < n; i++) {
+        if (isSequenceOfNByRow(board, rows, columns, row, column - i, token, n)) {
+            return 1;
+        };
+    }
+
+    // Check if sequence of n was made by right diagonal
+    for (int index = 0; index < n; index++) {
+        if (isSequenceOfNByRightDiagonal(board, rows, columns, row - index, column - index, token, n)) {
             return 1;
         }
     }
 
-    // Check if sequence of three was made by right diagonal
-    for (int index = 0; index <= 2; index++) {
-        if (isInBounds(rows, columns, row - index, column - index) && 
-            isInBounds(rows, columns, (row + 2) - index, (column + 2) - index) &&
-            token == board[row - index][column - index] && 
-            token == board[row + 1 - index][column + 1 - index] && 
-            token == board[row + 2 - index][column + 2 - index] ) {
-            return 1;
-        }
-    }
-
-    // Check if sequence of three was made by left diagonal
-    for (int index = 0; index <= 2; index++) {
-        if (isInBounds(rows, columns, row - index, column + index) && 
-            isInBounds(rows, columns, (row + 2) - index, (column - 2) + index) &&
-            token == board[row - index][column + index] && 
-            token == board[row + 1 - index][column - 1 + index] && 
-            token == board[row + 2 - index][column - 2 + index]  ) {
+    // Check if sequence of n was made by left diagonal
+    for (int index = 0; index < n; index++) {
+        if (isSequenceOfNByLeftDiagonal(board, rows, columns, row - index, column + index, token, n)) {
             return 1;
         }
     }
@@ -222,7 +272,8 @@ int checkSequenceOfThree(char board[][COLS], int rows, int columns, int row, int
     return 0;
 }
 
-int canMakeSequenceOfThree(char board[][COLS], int rows, int columns, int column, char token) {
+// would be canMakeSequenceOfThree in a regular connect four, its generic for N minus 1
+int canMakeSequenceOfNMinus1(char board[][COLS], int rows, int columns, int column, char token) {
     int freeRow;
 
     freeRow = getFreeRow(board, rows, columns, column);
@@ -234,7 +285,7 @@ int canMakeSequenceOfThree(char board[][COLS], int rows, int columns, int column
     // Make a move then check if it created a sequence of three and track it
     makeMove(board, rows, columns, column, token);
 
-    if (checkSequenceOfThree(board, rows, columns, freeRow, column, token)) {
+    if (checkSequenceOfN(board, rows, columns, freeRow, column, token, CONNECT_N - 1)) {
         // Reset the move so it doesn't actually happen
         board[freeRow][column] = EMPTY;
 
@@ -266,51 +317,7 @@ void createPriorityOrderArray(int orderArray[], int columns) {
 }
 
 int checkVictory(char board[][COLS], int rows, int columns, int row, int column, char token) {
-    // Check if player with given token won by a column of 4 tokens
-    if (isInBounds(rows, columns, row + 3, column) &&
-        token == board[row][column] && 
-        token == board[row + 1][column] && 
-        token == board[row + 2][column] && 
-        token == board[row + 3][column] ) {
-        return 1;
-    }
-
-    // Check if player with given token won by a row of 4 tokens
-    for (int columnIndex = column - 3; columnIndex <= column; columnIndex++) {
-        if (isInBounds(rows, columns, row, columnIndex) && isInBounds(rows, columns, row, columnIndex + 3) &&
-            token == board[row][columnIndex] && 
-            token == board[row][columnIndex + 1] && 
-            token == board[row][columnIndex + 2] && 
-            token == board[row][columnIndex + 3] ) {
-            return 1;
-        }
-    }
-
-    // Check if player with given token won by right diagonal of 4 tokens
-    for (int index = 0; index <= 3; index++) {
-        if (isInBounds(rows, columns, row - index, column - index) && 
-            isInBounds(rows, columns, (row + 3) - index, (column + 3) - index) &&
-            token == board[row - index][column - index] && 
-            token == board[row + 1 - index][column + 1 - index] && 
-            token == board[row + 2 - index][column + 2 - index] && 
-            token == board[row + 3 - index][column + 3 - index] ) {
-            return 1;
-        }
-    }
-
-    // Check if player with given token won by left diagonal of 4 tokens
-    for (int index = 0; index <= 3; index++) {
-        if (isInBounds(rows, columns, row - index, column + index) && 
-            isInBounds(rows, columns, (row + 3) - index, (column - 3) + index) &&
-            token == board[row - index][column + index] && 
-            token == board[row + 1 - index][column - 1 + index] && 
-            token == board[row + 2 - index][column - 2 + index] && 
-            token == board[row + 3 - index][column - 3 + index] ) {
-            return 1;
-        }
-    }
-
-    return 0;
+    return checkSequenceOfN(board, rows, columns, row, column, token, CONNECT_N);
 }
 
 int humanChoose(char board[][COLS], int rows, int columns) {
@@ -365,7 +372,7 @@ int computerChoose(char board[][COLS], int rows, int columns, char computerToken
             continue;
         }
 
-        // Make a move then check if it created a sequence of three and track it
+        // Make a move then check if it created a sequence of three (or n - 1) and track it
         makeMove(board, rows, columns, column, computerToken);
 
         if (checkVictory(board, rows, columns, freeRow, column, computerToken)) {
@@ -374,7 +381,7 @@ int computerChoose(char board[][COLS], int rows, int columns, char computerToken
             return column;
         }
 
-        // Make the move doesnt actually happen in this function
+        // Make the move doesn't actually happen in this function
         board[freeRow][column] = EMPTY;
     }
 
@@ -407,7 +414,7 @@ int computerChoose(char board[][COLS], int rows, int columns, char computerToken
             continue;
         }
 
-        if (canMakeSequenceOfThree(board, rows, columns, column, computerToken)) {
+        if (canMakeSequenceOfNMinus1(board, rows, columns, column, computerToken)) {
             return column;
         }
     }
@@ -420,11 +427,12 @@ int computerChoose(char board[][COLS], int rows, int columns, char computerToken
             continue;
         }
 
-        if (canMakeSequenceOfThree(board, rows, columns, column, enemyToken)) {
+        if (canMakeSequenceOfNMinus1(board, rows, columns, column, enemyToken)) {
             return column;
         }
     }
 
+    // if none of the winning, blocking or n - 1 sequences are not an option choose column by priority order
     for (int columnIndex = 0; columnIndex < columns; columnIndex++) {
         column = priorityOrder[columnIndex] - 1;
         freeRow = getFreeRow(board, rows, columns, column);
