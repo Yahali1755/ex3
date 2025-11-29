@@ -318,9 +318,9 @@ int humanChoose(char board[][COLS], int rows, int columns) {
     int scanResult;
     int chosenColumn;
 
-    printf("Enter column (1-%d): ", columns);
-
     do {
+        printf("Enter column (1-%d): ", columns);
+
         scanResult = scanf("%d", &inputColumn);
 
         if (scanResult != 1) {
