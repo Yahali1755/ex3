@@ -1,3 +1,9 @@
+/******************
+Name: Yahali Mashiach
+ID: 214007346
+Assignment: ex3
+*******************/
+
 #include <stdio.h>
 
 #ifndef ROWS
@@ -23,7 +29,7 @@
 #define HUMAN 1
 #define COMPUTER 2
 
-int ensureValidColumn(int, int);
+int isValidColumn(int, int);
 
 int isColumnFull(char[][COLS], int, int, int);
 
@@ -42,8 +48,15 @@ int checkVictory(char[][COLS], int, int, int, int, char);
 /* Human player: asks repeatedly until a valid non-full column is chosen (0-based) */
 int humanChoose(char[][COLS], int, int);
 
+int findNMinus1Move(char[][COLS], int, int, int[], char);
+
+int findWinningMove(char[][COLS], int, int, int[], char);
+
+int findFirstValidMove(char[][COLS], int, int, int[]);
+
 /* Computer*/
 int computerChoose(char[][COLS], int, int, char, char);
+
 
 void runConnectFour(char[][COLS], int, int, int, int);
 
@@ -96,6 +109,7 @@ void printBoard(char board[][COLS], int rows, int cols) {
 
 int getPlayerType(int playerNumber) {
     char ch;
+
     while (1) {
         printf("Choose type for player %d: h - human, c - computer: ", playerNumber);
         int n = scanf(" %c", &ch);
@@ -132,7 +146,7 @@ int isBoardFull(char board[][COLS], int rows, int columns) {
     return 1;
 }
 
-int ensureValidColumn(int columns, int column) {
+int isValidColumn(int columns, int column) {
     if (column < 0 || column >= columns) {
         return 0;
     }
@@ -141,7 +155,7 @@ int ensureValidColumn(int columns, int column) {
 }
 
 int isColumnFull(char board[][COLS], int rows, int columns, int column) {
-    if (!ensureValidColumn(columns, column)) 
+    if (!isValidColumn(columns, column)) 
         return COLUMN_FULL_INDEX;
 
     for (int row = 0; row < rows; row++) {
@@ -162,7 +176,7 @@ int isInBounds(int rows, int columns, int row, int column) {
 }   
 
 int getFreeRow(char board[][COLS], int rows, int columns, int column) {
-    if (!ensureValidColumn(columns, column)) 
+    if (!isValidColumn(columns, column)) 
         return COLUMN_FULL_INDEX;
 
     for (int row = rows - 1; row >= 0; row--) {
@@ -248,21 +262,21 @@ int checkSequenceOfN(char board[][COLS], int rows, int columns, int row, int col
         return 1;
     }
 
-    // Check if sequence of n was made by row
-    for (int i = 0; i < n; i++) {
-        if (isSequenceOfNByRow(board, rows, columns, row, column - i, token, n)) {
+    // Check if sequence of n was made by right row by checking the indexes per any possible row
+    for (int index = 0; index < n; index++) {
+        if (isSequenceOfNByRow(board, rows, columns, row, column - index, token, n)) {
             return 1;
         };
     }
 
-    // Check if sequence of n was made by right diagonal
+    // Check if sequence of n was made by right diagonal by checking the indexes per any possible right diagonal
     for (int index = 0; index < n; index++) {
         if (isSequenceOfNByRightDiagonal(board, rows, columns, row - index, column - index, token, n)) {
             return 1;
         }
     }
 
-    // Check if sequence of n was made by left diagonal
+    // Check if sequence of n was made by right row by checking the indexes per any possible left diagonal
     for (int index = 0; index < n; index++) {
         if (isSequenceOfNByLeftDiagonal(board, rows, columns, row - index, column + index, token, n)) {
             return 1;
@@ -272,7 +286,7 @@ int checkSequenceOfN(char board[][COLS], int rows, int columns, int row, int col
     return 0;
 }
 
-// would be canMakeSequenceOfThree in a regular connect four, its generic for N minus 1
+// Would be canMakeSequenceOfThree in a regular connect four, its generic for N minus 1
 int canMakeSequenceOfNMinus1(char board[][COLS], int rows, int columns, int column, char token) {
     int freeRow;
 
@@ -298,6 +312,7 @@ int canMakeSequenceOfNMinus1(char board[][COLS], int rows, int columns, int colu
     return 0;
 }
 
+// Create priority order array starting from the middle adding left first then right each time
 void createPriorityOrderArray(int orderArray[], int columns) {
     int left = (columns + 1) / 2;
     int right = (columns / 2) + 1;
@@ -333,7 +348,7 @@ int humanChoose(char board[][COLS], int rows, int columns) {
         if (scanResult != 1) {
             printf("Invalid input. Enter a number.\n");
             
-           // clear entered char from the buffer
+           // clear entered invalid char from the buffer
             while (getchar() != '\n'); 
 
             continue;
@@ -341,7 +356,7 @@ int humanChoose(char board[][COLS], int rows, int columns) {
 
         chosenColumn = inputColumn - 1;
 
-        if (chosenColumn < 0 || chosenColumn >= columns) {
+        if (!isValidColumn(columns, chosenColumn)) {
             printf("Invalid column. Choose between 1 and %d.\n", columns);
 
             continue;
@@ -357,95 +372,87 @@ int humanChoose(char board[][COLS], int rows, int columns) {
     } while (1);
 }
 
-int computerChoose(char board[][COLS], int rows, int columns, char computerToken, char enemyToken) {
-    int freeRow;
-    int priorityOrder[COLS];
-    int column;
+// Iterate through columns in priority order and check for sequences of n - 1 (generic for sequence of three)
+int findWinningMove(char board[][COLS], int rows, int columns, int priorityOrder[], char token) {
+    int column, freeRow;
 
-    createPriorityOrderArray(priorityOrder, columns);
-
-    for (int columnIndex = 0; columnIndex < columns; columnIndex++) {
-        column = priorityOrder[columnIndex] - 1;
+    for (int i = 0; i < columns; i++) {
+        column = priorityOrder[i] - 1;
         freeRow = getFreeRow(board, rows, columns, column);
 
-        if (freeRow == COLUMN_FULL_INDEX) {
+        if (freeRow == COLUMN_FULL_INDEX) 
             continue;
-        }
 
-        // Make a move then check if it created a sequence of three (or n - 1) and track it
-        makeMove(board, rows, columns, column, computerToken);
+        board[freeRow][column] = token;
 
-        if (checkVictory(board, rows, columns, freeRow, column, computerToken)) {
+        if (checkVictory(board, rows, columns, freeRow, column, token)) {
             board[freeRow][column] = EMPTY;
 
             return column;
         }
 
-        // Make the move doesn't actually happen in this function
         board[freeRow][column] = EMPTY;
-    }
-
-    for (int columnIndex = 0; columnIndex < columns; columnIndex++) {
-        column = priorityOrder[columnIndex] - 1;
-        freeRow = getFreeRow(board, rows, columns, column);
-
-        if (freeRow == COLUMN_FULL_INDEX) {
-            continue;
-        }
-
-        // Make a move then check if it created a sequence of three and track it
-        makeMove(board, rows, columns, column, enemyToken);
-
-        if (checkVictory(board, rows, columns, freeRow, column, enemyToken)) {
-            board[freeRow][column] = EMPTY;
-
-            return column;
-        }
-
-        // Make the move doesnt actually happen in this function
-        board[freeRow][column] = EMPTY;
-    }
-
-    for (int columnIndex = 0; columnIndex < columns; columnIndex++) {
-        column = priorityOrder[columnIndex] - 1;
-        freeRow = getFreeRow(board, rows, columns, column);
-
-        if (freeRow == COLUMN_FULL_INDEX) {
-            continue;
-        }
-
-        if (canMakeSequenceOfNMinus1(board, rows, columns, column, computerToken)) {
-            return column;
-        }
-    }
-
-    for (int columnIndex = 0; columnIndex < columns; columnIndex++) {
-        column = priorityOrder[columnIndex] - 1;
-        freeRow = getFreeRow(board, rows, columns, column);
-
-        if (freeRow == COLUMN_FULL_INDEX) {
-            continue;
-        }
-
-        if (canMakeSequenceOfNMinus1(board, rows, columns, column, enemyToken)) {
-            return column;
-        }
-    }
-
-    // if none of the winning, blocking or n - 1 sequences are not an option choose column by priority order
-    for (int columnIndex = 0; columnIndex < columns; columnIndex++) {
-        column = priorityOrder[columnIndex] - 1;
-        freeRow = getFreeRow(board, rows, columns, column);
-
-        if (freeRow == COLUMN_FULL_INDEX) {
-            continue;
-        }
-
-        return column;
     }
 
     return -1;
-} 
+}
+
+// Iterate through columns in priority order and check for sequences of n - 1 (generic for sequence of three)
+int findNMinus1Move(char board[][COLS], int rows, int columns, int priorityOrder[], char token) {
+    int column, freeRow;
+
+    for (int i = 0; i < columns; i++) {
+        column = priorityOrder[i] - 1;
+        freeRow = getFreeRow(board, rows, columns, column);
+
+        if (freeRow == COLUMN_FULL_INDEX) 
+            continue;
+
+        if (canMakeSequenceOfNMinus1(board, rows, columns, column, token)) {
+            return column;
+        }
+    }
+
+    return -1;
+}
+
+// Iterate through columns in priority order returning the first free one
+int findFirstValidMove(char board[][COLS], int rows, int columns, int priorityOrder[]) {
+    int column, freeRow;
+
+    for (int i = 0; i < columns; i++) {
+        column = priorityOrder[i] - 1;
+        freeRow = getFreeRow(board, rows, columns, column);
+
+        if (freeRow != COLUMN_FULL_INDEX) {
+            return column;
+        }
+    }
+
+    return -1;
+}
+
+// Check all columns for moves in order according to the assignment
+int computerChoose(char board[][COLS], int rows, int columns, char computerToken, char enemyToken) {
+    int priorityOrder[COLS];
+    int move;
+
+    createPriorityOrderArray(priorityOrder, columns);
+
+    move = findWinningMove(board, rows, columns, priorityOrder, computerToken);
+    if (move != -1) return move;
+
+    move = findWinningMove(board, rows, columns, priorityOrder, enemyToken);
+    if (move != -1) return move;
+
+    move = findNMinus1Move(board, rows, columns, priorityOrder, computerToken);
+    if (move != -1) return move;
+
+    move = findNMinus1Move(board, rows, columns, priorityOrder, enemyToken);
+    if (move != -1) return move;
+
+    return findFirstValidMove(board, rows, columns, priorityOrder);
+}
 
 void runConnectFour(char board[][COLS], int rows, int columns, int player1Type, int player2Type) {
     int turn = PLAYER1_TURN;
